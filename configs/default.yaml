@@ -1,0 +1,85 @@
+# Default configuration for one cell of the capacity x intervention grid.
+# Override any field from the command line, for example:
+#   python -m src.train_sft --config configs/default.yaml --model smollm2-360m --data lima
+
+experiment:
+  name: sah-capacity-default
+  seed: 17
+  output_root: runs
+  # Set to true for a 5 minute end-to-end smoke test on tiny subsets.
+  smoke_test: false
+
+model:
+  # Key from src/model_zoo.py LADDER. The whole point of the study is to sweep this.
+  key: smollm2-360m
+  dtype: bfloat16
+  attn_implementation: sdpa
+  max_seq_len: 1024
+
+data:
+  # One of: lima (1K curated), tulu3 (scaled SFT), none (base model only)
+  name: lima
+  # Number of training examples. null means use the full split.
+  n_train: null
+  n_eval: 256
+  # Held out slice of the SFT data used for loss tracking, not for the paper tables.
+  val_fraction: 0.05
+
+intervention:
+  # base | ica | sft | sft_dpo
+  #   base     no weight update, few-shot prompt only
+  #   ica      in-context alignment, URIAL style, 3 demonstrations
+  #   sft      supervised fine-tuning on data.name
+  #   sft_dpo  DPO on top of an existing SFT checkpoint
+  kind: sft
+  # Used when kind is ica.
+  n_demos: 3
+  # Used when kind is sft_dpo.
+  sft_checkpoint: null
+
+train:
+  epochs: 3
+  per_device_batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-5
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  lr_scheduler: cosine
+  max_grad_norm: 1.0
+  logging_steps: 10
+  save_strategy: epoch
+  gradient_checkpointing: true
+  # LoRA is a capacity control, not a convenience: the rank sweep is an ablation.
+  use_lora: false
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+dpo:
+  beta: 0.1
+  lr: 5.0e-7
+  epochs: 1
+  dataset: HuggingFaceH4/ultrafeedback_binarized
+
+eval:
+  # Format axis and capability axis are always reported separately.
+  format_tasks: [ifeval_subset, structure_compliance]
+  capability_tasks: [gsm8k, mmlu, arc_challenge]
+  # Log probability scoring keeps the capability axis from being confounded by style.
+  capability_scoring: loglikelihood
+  n_shot_base: 5
+  n_shot_aligned: 0
+  max_new_tokens: 320
+  temperature: 0.0
+  batch_size: 8
+
+analysis:
+  # Superficiality Index reference points. Both must already be evaluated.
+  reference_base: base
+  reference_ceiling: sft
+  bootstrap_resamples: 2000
+  ci_level: 0.95
+  # Token distribution shift analysis
+  tds_n_prompts: 128
+  tds_kl_threshold: 0.1

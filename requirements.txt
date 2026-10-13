@@ -1,0 +1,25 @@
+# Core stack for the capacity-bounded alignment study.
+# Tested with Python 3.10 to 3.12 on a single 16GB or 24GB GPU.
+torch==2.5.1
+transformers==4.46.3
+datasets==3.1.0
+accelerate==1.1.1
+trl==0.12.2
+peft==0.13.2
+bitsandbytes==0.44.1
+sentencepiece==0.2.0
+safetensors==0.4.5
+
+# Evaluation, statistics, plotting
+lm-eval==0.4.5
+scipy==1.14.1
+numpy==2.1.3
+pandas==2.2.3
+matplotlib==3.9.2
+scikit-learn==1.5.2
+
+# Config, logging, utilities
+pyyaml==6.0.2
+tqdm==4.67.1
+wandb==0.18.7
+rich==13.9.4
